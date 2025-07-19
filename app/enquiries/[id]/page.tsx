@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React from "react"
+import {use , useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { getEnquiryById, deleteEnquiry, updateEnquiry } from "@/lib/mock-data"
+import { deleteEnquiry, updateEnquiry } from "@/lib/enquiry"
 import { format } from "date-fns"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -23,20 +24,30 @@ import { GymEnquiryForm } from "@/components/gym-enquiry-form"
 import type { GymEnquiry } from "@/lib/types"
 
 interface GymDetailsPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }>
 }
 
 export default function GymDetailsPage({ params }: GymDetailsPageProps) {
+  const { id } = use(params) // ✅ unwrap the Promise
   const router = useRouter()
   const [enquiry, setEnquiry] = useState<GymEnquiry | undefined>(undefined)
   const [isEditing, setIsEditing] = useState(false)
 
+
+  
+
   useEffect(() => {
-    const foundEnquiry = getEnquiryById(params.id)
-    setEnquiry(foundEnquiry)
-  }, [params.id, isEditing]) // Re-fetch if ID changes or after editing
+    async function fetchEnquiry() {
+      const res = await fetch(`/api/enquiries/${id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setEnquiry(data)
+      } else {
+        setEnquiry(undefined)
+      }
+    }
+    fetchEnquiry()
+  }, [id, isEditing])
 
   if (!enquiry && !isEditing) {
     return (
@@ -44,7 +55,7 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
         <Card className="w-full max-w-2xl mx-auto my-8">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Enquiry Not Found</CardTitle>
-            <CardDescription>The gym enquiry with ID "{params.id}" could not be found.</CardDescription>
+            <CardDescription>The gym enquiry with ID "{id}" could not be found.</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/">
@@ -56,19 +67,26 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
     )
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (enquiry) {
-      deleteEnquiry(enquiry.id)
-      router.push("/") // Redirect to the main table after deletion
+      await fetch(`/api/enquiries/${enquiry.id}`, { // <-- use id
+        method: "DELETE",
+      })
+      router.push("/")
     }
   }
 
-  const handleUpdateEnquiry = (updatedData: Omit<GymEnquiry, "id"> | GymEnquiry) => {
+  const handleUpdateEnquiry = async (updatedData: Omit<GymEnquiry, "id"> | GymEnquiry) => {
     if (enquiry) {
-      const updated = updateEnquiry({ ...enquiry, ...updatedData })
-      if (updated) {
-        setEnquiry(updated) // Update local state with the new data
-        setIsEditing(false) // Exit edit mode
+      const res = await fetch(`/api/enquiries/${enquiry.id}`, { // <-- use id
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setEnquiry(updated)
+        setIsEditing(false)
       }
     }
   }
