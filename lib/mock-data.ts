@@ -3,7 +3,7 @@ import type { GymEnquiry, AdditionalVisit } from "./types"
 // Make this array mutable for demonstration purposes
 export let mockEnquiries: GymEnquiry[] = [
   {
-    id: "1",
+   _id: "1",
     gymName: "Powerhouse Gym",
     ownerManagerName: "John Smith",
     phoneNumber: "111-222-3333",
@@ -44,7 +44,7 @@ export let mockEnquiries: GymEnquiry[] = [
     ],
   },
   {
-    id: "2",
+    _id: "2",
     gymName: "Urban Fitness",
     ownerManagerName: "Sarah Connor",
     phoneNumber: "444-555-6666",
@@ -79,7 +79,7 @@ export let mockEnquiries: GymEnquiry[] = [
     ],
   },
   {
-    id: "3",
+    _id: "3",
     gymName: "Zenith Athletics",
     ownerManagerName: "Michael Jordan",
     phoneNumber: "777-888-9999",
@@ -109,20 +109,23 @@ export let mockEnquiries: GymEnquiry[] = [
 ]
 
 export function getEnquiryById(id: string): GymEnquiry | undefined {
-  return mockEnquiries.find((e) => e.id === id)
+  return mockEnquiries.find((e) => e._id === id)
 }
 
 export function addEnquiry(newEnquiry: Omit<GymEnquiry, "id">): GymEnquiry {
   const id = (
-    mockEnquiries.length > 0 ? Math.max(...mockEnquiries.map((e) => Number.parseInt(e.id))) + 1 : 1
+    mockEnquiries.length > 0
+      ? Math.max(...mockEnquiries.map((e) => parseInt(e.id))) + 1
+      : 1
   ).toString()
-  const enquiryWithId = { id, ...newEnquiry } as GymEnquiry
+
+  const enquiryWithId: GymEnquiry = { id, ...newEnquiry }
   mockEnquiries.push(enquiryWithId)
   return enquiryWithId
 }
 
 export function updateEnquiry(updatedEnquiry: GymEnquiry): GymEnquiry | undefined {
-  const index = mockEnquiries.findIndex((e) => e.id === updatedEnquiry.id)
+  const index = mockEnquiries.findIndex((e) => e._id === updatedEnquiry._id)
   if (index !== -1) {
     mockEnquiries[index] = updatedEnquiry
     return mockEnquiries[index]
@@ -132,7 +135,7 @@ export function updateEnquiry(updatedEnquiry: GymEnquiry): GymEnquiry | undefine
 
 export function deleteEnquiry(id: string): boolean {
   const initialLength = mockEnquiries.length
-  mockEnquiries = mockEnquiries.filter((e) => e.id !== id)
+  mockEnquiries = mockEnquiries.filter((e) => e._id !== id)
   return mockEnquiries.length < initialLength
 }
 

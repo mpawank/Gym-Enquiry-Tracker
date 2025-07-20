@@ -72,23 +72,33 @@ export function GymEnquiryForm({
     }))
   }
 
-  const handleSelectChange = (id: string, value: string) => {
+  const handleSelectChange = (_id: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [id]: value,
+      [_id]: value,
     }))
   }
 
-  const handleDateChange = (id: string, date: Date | undefined) => {
+  const handleDateChange = (_id: string, date: Date | undefined) => {
     setFormData((prev) => ({
       ...prev,
-      [id]: date,
+      [_id]: date,
     }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    
+    // Clean and validate the Google Maps link
+    let cleanedData = { ...formData }
+    if (cleanedData.googleMapsLink && !cleanedData.googleMapsLink.startsWith('http')) {
+      // Try to add https:// if it's missing
+      if (!cleanedData.googleMapsLink.startsWith('https://') && !cleanedData.googleMapsLink.startsWith('http://')) {
+        cleanedData.googleMapsLink = `https://${cleanedData.googleMapsLink}`
+      }
+    }
+    
+    onSubmit(cleanedData)
   }
 
   return (
@@ -174,7 +184,11 @@ export function GymEnquiryForm({
                 value={formData.googleMapsLink}
                 onChange={handleChange}
                 placeholder="e.g., https://maps.app.goo.gl/..."
+                type="url"
               />
+              {formData.googleMapsLink && !formData.googleMapsLink.startsWith('http') && (
+                <p className="text-sm text-red-600">Please enter a valid URL starting with http:// or https://</p>
+              )}
             </div>
           </div>
 

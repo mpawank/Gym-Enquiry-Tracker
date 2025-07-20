@@ -33,7 +33,7 @@ export default function Home() {
       body: JSON.stringify(newEnquiry),
     })
     const saved = await res.json()
-    setEnquiries((prev) => [...prev, { ...newEnquiry, id: saved.insertedId }])
+    setEnquiries((prev) => [...prev, { ...newEnquiry, _id: saved.insertedId }])
     setShowForm(false)
   }
 
@@ -44,7 +44,7 @@ export default function Home() {
 
   const handleSaveVisit = async (visitData: Omit<AdditionalVisit, "id">) => {
   if (editingVisitForEnquiryId) {
-    const enquiry = enquiries.find((e) => e.id === editingVisitForEnquiryId)
+    const enquiry = enquiries.find((e) => e._id === editingVisitForEnquiryId)
     if (!enquiry) return
 
     const updatedVisits = [...(enquiry.additionalVisits || []), visitData]
@@ -59,7 +59,7 @@ export default function Home() {
     // Update local state
     setEnquiries((prev) =>
       prev.map((e) =>
-        e.id === editingVisitForEnquiryId ? { ...e, additionalVisits: updatedVisits } : e
+        e._id === editingVisitForEnquiryId ? { ...e, additionalVisits: updatedVisits } : e
       )
     )
 
@@ -72,7 +72,7 @@ export default function Home() {
     setEditingVisitForEnquiryId(null)
   }
 
-  const currentEnquiryForVisit = enquiries.find((e) => e.id === editingVisitForEnquiryId)
+  const currentEnquiryForVisit = enquiries.find((e) => e._id === editingVisitForEnquiryId)
 
   // ✅ Apply Filters
   const filteredEnquiries = useMemo(() => {

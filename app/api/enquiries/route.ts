@@ -9,8 +9,7 @@ export async function GET() {
 
   const formattedEnquiries = enquiries.map((enquiry) => ({
     ...enquiry,
-    id: enquiry._id.toString(), 
-    _id: undefined,
+    _id: enquiry._id.toString(),
   }))
 
   return NextResponse.json(formattedEnquiries)
@@ -20,6 +19,8 @@ export async function POST(req: Request) {
   const body = await req.json()
   const client = await clientPromise
   const db = client.db("gym-tracker")
+
   const result = await db.collection("enquiries").insertOne(body)
-  return NextResponse.json({ insertedId: result.insertedId })
+
+  return NextResponse.json({ insertedId: result.insertedId.toString() })
 }

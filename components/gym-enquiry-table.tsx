@@ -114,15 +114,15 @@ export function GymEnquiryTable({
               </TableHeader>
               <TableBody>
                 {enquiries.map((enquiry) => (
-                  <TableRow key={enquiry.id}>
+                  <TableRow key={enquiry._id}>
                     <TableCell className="font-medium flex items-center gap-2">
-                      <Link href={`/enquiries/${enquiry.id}`} className="text-blue-600 hover:underline">
+                      <Link href={`/enquiries/${enquiry._id}`} className="text-blue-600 hover:underline">
                         {enquiry.gymName}
                       </Link>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onAddVisit(enquiry.id)}
+                        onClick={() => enquiry._id && onAddVisit(enquiry._id)}
                         title={`Add new visit for ${enquiry.gymName}`}
                       >
                         <PlusIcon className="h-4 w-4" />
@@ -132,14 +132,18 @@ export function GymEnquiryTable({
                     <TableCell>{`${enquiry.address}, ${enquiry.city}, ${enquiry.pinCode}`}</TableCell>
                     <TableCell>
                       {enquiry.googleMapsLink ? (
-                        <Link
-                          href={enquiry.googleMapsLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          View on Map
-                        </Link>
+                        enquiry.googleMapsLink.startsWith('http') ? (
+                          <Link
+                            href={enquiry.googleMapsLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            View on Map
+                          </Link>
+                        ) : (
+                          <span className="text-red-600 text-sm">Invalid URL</span>
+                        )
                       ) : (
                         "N/A"
                       )}
@@ -153,12 +157,16 @@ export function GymEnquiryTable({
                       <ul className="list-disc pl-4">
                         {enquiry.dateOfVisit && (
                           <li>
-                            {format(enquiry.dateOfVisit, "PPP")} ({enquiry.typeOfInteraction})
+                            {enquiry.dateOfVisit instanceof Date 
+                              ? format(enquiry.dateOfVisit, "PPP") 
+                              : format(new Date(enquiry.dateOfVisit), "PPP")} ({enquiry.typeOfInteraction})
                           </li>
                         )}
                         {enquiry.additionalVisits?.map((visit, index) => (
                           <li key={index}>
-                            {format(visit.date, "PPP")} ({visit.type})
+                            {visit.date instanceof Date 
+                              ? format(visit.date, "PPP") 
+                              : format(new Date(visit.date), "PPP")} ({visit.type})
                           </li>
                         ))}
                         {!enquiry.dateOfVisit && !enquiry.additionalVisits?.length && <li>No visits recorded</li>}

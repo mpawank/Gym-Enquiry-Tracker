@@ -6,7 +6,8 @@ export type AdditionalVisit = {
 }
 
 export type GymEnquiry = {
-  id: string
+  _id?: string
+  id?: string
   gymName: string
   ownerManagerName: string
   phoneNumber: string

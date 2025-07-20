@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import {use , useState, useEffect } from "react"
+import { use, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -32,22 +32,90 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
   const router = useRouter()
   const [enquiry, setEnquiry] = useState<GymEnquiry | undefined>(undefined)
   const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
 
   
 
   useEffect(() => {
     async function fetchEnquiry() {
-      const res = await fetch(`/api/enquiries/${id}`)
-      if (res.ok) {
-        const data = await res.json()
-        setEnquiry(data)
-      } else {
+      if (!id) return // Don't fetch if id is undefined
+      
+      setIsLoading(true)
+      setError(null)
+      
+      try {
+        const res = await fetch(`/api/enquiries/${id}`)
+        if (res.ok) {
+          const data = await res.json()
+          // Convert date strings to Date objects
+          const processedData = {
+            ...data,
+            dateOfFirstContact: data.dateOfFirstContact ? new Date(data.dateOfFirstContact) : undefined,
+            dateOfVisit: data.dateOfVisit ? new Date(data.dateOfVisit) : undefined,
+            nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : undefined,
+            dateOfRevisit: data.dateOfRevisit ? new Date(data.dateOfRevisit) : undefined,
+            issueDate: data.issueDate ? new Date(data.issueDate) : undefined,
+            additionalVisits: data.additionalVisits?.map((visit: any) => ({
+              ...visit,
+              date: new Date(visit.date),
+              nextVisitDate: visit.nextVisitDate ? new Date(visit.nextVisitDate) : undefined,
+            })) || [],
+          }
+          setEnquiry(processedData)
+        } else {
+          setEnquiry(undefined)
+          setError("Failed to fetch enquiry")
+        }
+      } catch (err) {
+        setError("An error occurred while fetching the enquiry")
         setEnquiry(undefined)
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchEnquiry()
   }, [id, isEditing])
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-gray-50">
+        <Card className="w-full max-w-2xl mx-auto my-8">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">Loading...</CardTitle>
+            <CardDescription>Fetching enquiry details...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-gray-50">
+        <Card className="w-full max-w-2xl mx-auto my-8">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-red-600">Error</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+              <Link href="/">
+                <Button variant="outline">Back to Enquiries</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
 
   if (!enquiry && !isEditing) {
     return (
@@ -55,7 +123,7 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
         <Card className="w-full max-w-2xl mx-auto my-8">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Enquiry Not Found</CardTitle>
-            <CardDescription>The gym enquiry with ID "{id}" could not be found.</CardDescription>
+            <CardDescription>The gym enquiry with id "{id}" could not be found.</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/">
@@ -68,24 +136,46 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
   }
 
   const handleDelete = async () => {
-    if (enquiry) {
-      await fetch(`/api/enquiries/${enquiry.id}`, { // <-- use id
-        method: "DELETE",
-      })
-      router.push("/")
+    if (enquiry && enquiry._id) {
+      try {
+        const res = await fetch(`/api/enquiries/${enquiry._id}`, {
+          method: "DELETE",
+        })
+        if (res.ok) {
+          router.push("/")
+        } else {
+          console.error("Failed to delete enquiry")
+        }
+      } catch (err) {
+        console.error("Error deleting enquiry:", err)
+      }
     }
   }
 
-  const handleUpdateEnquiry = async (updatedData: Omit<GymEnquiry, "id"> | GymEnquiry) => {
-    if (enquiry) {
-      const res = await fetch(`/api/enquiries/${enquiry.id}`, { // <-- use id
+  const handleUpdateEnquiry = async (updatedData: Omit<GymEnquiry, "_id"> | GymEnquiry) => {
+    if (enquiry && enquiry._id) {
+      const res = await fetch(`/api/enquiries/${enquiry._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedData),
       })
       if (res.ok) {
-        const updated = await res.json()
-        setEnquiry(updated)
+        const data = await res.json()
+        // Convert date strings to Date objects
+        const processedData = {
+          ...data,
+          dateOfFirstContact: data.dateOfFirstContact ? new Date(data.dateOfFirstContact) : undefined,
+          dateOfVisit: data.dateOfVisit ? new Date(data.dateOfVisit) : undefined,
+          nextFollowUpDate: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : undefined,
+          dateOfRevisit: data.dateOfRevisit ? new Date(data.dateOfRevisit) : undefined,
+          issueDate: data.issueDate ? new Date(data.issueDate) : undefined,
+          additionalVisits: data.additionalVisits?.map((visit: any) => ({
+            ...visit,
+            date: new Date(visit.date),
+            nextVisitDate: visit.nextVisitDate ? new Date(visit.nextVisitDate) : undefined,
+          })) || [],
+        }
+        setEnquiry(processedData)
         setIsEditing(false)
       }
     }
@@ -193,14 +283,18 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
             {enquiry?.googleMapsLink && (
               <p>
                 <strong>Google Maps:</strong>{" "}
-                <Link
-                  href={enquiry.googleMapsLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  View on Map
-                </Link>
+                {enquiry.googleMapsLink.startsWith('http') ? (
+                  <Link
+                    href={enquiry.googleMapsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    View on Map
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">Invalid URL format</span>
+                )}
               </p>
             )}
           </div>
@@ -210,18 +304,22 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
             <h3 className="text-lg font-semibold">📅 Interaction & Visit Details</h3>
             <p>
               <strong>Date of First Contact:</strong>{" "}
-              {enquiry?.dateOfFirstContact ? format(enquiry.dateOfFirstContact, "PPP") : "N/A"}
+              {enquiry?.dateOfFirstContact && enquiry.dateOfFirstContact instanceof Date 
+                ? format(enquiry.dateOfFirstContact, "PPP") 
+                : "N/A"}
             </p>
             <p>
               <strong>Source of Lead:</strong> {enquiry?.sourceOfLead || "N/A"}
             </p>
             <p>
               <strong>Next Follow-up Date (Overall):</strong>{" "}
-              {enquiry?.nextFollowUpDate ? format(enquiry.nextFollowUpDate, "PPP") : "N/A"}
+              {enquiry?.nextFollowUpDate && enquiry.nextFollowUpDate instanceof Date 
+                ? format(enquiry.nextFollowUpDate, "PPP") 
+                : "N/A"}
             </p>
             <p>
               <strong>Revisit Required:</strong> {enquiry?.revisitRequired ? "Yes" : "No"}
-              {enquiry?.revisitRequired && enquiry.dateOfRevisit && (
+              {enquiry?.revisitRequired && enquiry.dateOfRevisit && enquiry.dateOfRevisit instanceof Date && (
                 <span> ({format(enquiry.dateOfRevisit, "PPP")})</span>
               )}
             </p>
@@ -237,7 +335,9 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
               <strong>Issue Level:</strong> {enquiry?.issueLevel || "N/A"}
             </p>
             <p>
-              <strong>Issue Date:</strong> {enquiry?.issueDate ? format(enquiry.issueDate, "PPP") : "N/A"}
+              <strong>Issue Date:</strong> {enquiry?.issueDate && enquiry.issueDate instanceof Date 
+                ? format(enquiry.issueDate, "PPP") 
+                : "N/A"}
             </p>
             <p>
               <strong>Issue Status:</strong> {enquiry?.issueStatus || "N/A"}
@@ -271,12 +371,17 @@ export default function GymDetailsPage({ params }: GymDetailsPageProps) {
                   </TableHeader>
                   <TableBody>
                     {allVisits
-                      .sort((a, b) => a.date.getTime() - b.date.getTime()) // Sort by date
+                      .sort((a, b) => {
+                        if (!(a.date instanceof Date) || !(b.date instanceof Date)) return 0
+                        return a.date.getTime() - b.date.getTime()
+                      }) // Sort by date
                       .map((visit, index) => (
                         <TableRow key={index}>
-                          <TableCell>{format(visit.date, "PPP")}</TableCell>
+                          <TableCell>{visit.date instanceof Date ? format(visit.date, "PPP") : "Invalid Date"}</TableCell>
                           <TableCell>{visit.type}</TableCell>
-                          <TableCell>{visit.nextVisitDate ? format(visit.nextVisitDate, "PPP") : "N/A"}</TableCell>
+                          <TableCell>{visit.nextVisitDate && visit.nextVisitDate instanceof Date 
+                            ? format(visit.nextVisitDate, "PPP") 
+                            : "N/A"}</TableCell>
                           <TableCell>{visit.notes || "N/A"}</TableCell>
                         </TableRow>
                       ))}
