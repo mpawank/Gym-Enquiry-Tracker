@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "./date-picker"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { GymEnquiry } from "@/lib/types"
+import { useUser } from "@clerk/nextjs"
 
 interface GymEnquiryFormProps {
   onSubmit: (data: Omit<GymEnquiry, "id"> | GymEnquiry) => void
@@ -27,6 +28,7 @@ export function GymEnquiryForm({
   formTitle = "Gym Enquiry Tracking System",
   formDescription = "Track and manage potential clients for your gym management software.",
 }: GymEnquiryFormProps) {
+  const { user } = useUser();
   const [formData, setFormData] = useState<Omit<GymEnquiry, "id"> | GymEnquiry>(
     initialData || {
       gymName: "",
@@ -64,6 +66,8 @@ export function GymEnquiryForm({
     }
   }, [initialData])
 
+  if (!user) return <p className="text-center text-muted-foreground">Loading...</p>;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value, type, checked } = e.target as HTMLInputElement
     setFormData((prev) => ({
@@ -87,19 +91,22 @@ export function GymEnquiryForm({
   }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // Clean and validate the Google Maps link
-    let cleanedData = { ...formData }
-    if (cleanedData.googleMapsLink && !cleanedData.googleMapsLink.startsWith('http')) {
-      // Try to add https:// if it's missing
-      if (!cleanedData.googleMapsLink.startsWith('https://') && !cleanedData.googleMapsLink.startsWith('http://')) {
-        cleanedData.googleMapsLink = `https://${cleanedData.googleMapsLink}`
-      }
+    e.preventDefault();
+    if (!user) {
+      alert("You must be logged in to submit an enquiry.");
+      return;
     }
-    
-    onSubmit(cleanedData)
-  }
+    let cleanedData = { ...formData };
+    if (cleanedData.googleMapsLink && !cleanedData.googleMapsLink.startsWith("http")) {
+      cleanedData.googleMapsLink = `https://${cleanedData.googleMapsLink}`;
+    }
+    // Attach userId
+    const finalData = {
+      ...cleanedData,
+      userId: user.id,
+    };
+    onSubmit(finalData);
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto my-8">
